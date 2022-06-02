@@ -20,6 +20,14 @@ export class SignupService {
     return this.userRepository.find();
   }
 
+  findUserById(id: number) {
+    return this.userRepository.findOne({
+      where: {
+        user_id: id,
+      },
+    });
+  }
+
   async naverLogin(state: string, code: string) {
     const naver_api_url = `https://nid.naver.com/oauth2.0/token?grant_type=authorization_code&response_type=code&client_id=${this.config.get(
       'NAVER_CLIENT_ID',
@@ -50,10 +58,16 @@ export class SignupService {
     );
     const user_id = user_info.data.response.id;
 
-    // 회원가입 진행
-    const user = new UserEntity();
-    user.user_id = user_id;
-    user.user_nickname = '아무개';
-    return await this.userRepository.save(user);
+    const user = await this.findUserById(user_id);
+    if (user) {
+      // pass
+      return 'pass';
+    } else {
+      // 회원가입 진행
+      const user = new UserEntity();
+      user.user_id = user_id;
+      user.user_nickname = '아무개';
+      return await this.userRepository.save(user);
+    }
   }
 }
