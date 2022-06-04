@@ -9,4 +9,9 @@ export class SignupController {
   naverLogin(@Query('state') state: string, @Query('code') code: string) {
     return this.signupService.naverLogin(state, code);
   }
+
+  @Get('/kakao/callback')
+  kakaoLogin(@Query('code') code: string) {
+    return this.signupService.kakaoLogin(code);
+  }
 }

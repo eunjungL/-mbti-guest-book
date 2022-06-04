@@ -1,10 +1,10 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { UserEntity } from "./user.entity";
-import { Repository } from "typeorm";
-import { ConfigService } from "@nestjs/config";
-import { HttpService } from "@nestjs/axios";
-import { firstValueFrom } from "rxjs";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserEntity } from './user.entity';
+import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class SignupService {
@@ -13,19 +13,32 @@ export class SignupService {
     private userRepository: Repository<UserEntity>,
     private config: ConfigService,
     private axios: HttpService,
-  ) {
-  }
+  ) {}
 
   findUsers() {
     return this.userRepository.find();
   }
 
-  findUserById(id: number) {
+  findUserById(id: string) {
     return this.userRepository.findOne({
       where: {
         user_id: id,
       },
     });
+  }
+
+  async signupProcess(user_id: string) {
+    const user = await this.findUserById(user_id);
+    if (!user) {
+      const new_user: UserEntity = new UserEntity();
+      new_user.user_id = user_id;
+      new_user.user_nickname = '아무개';
+
+      return await this.userRepository.save(new_user);
+    } else {
+      // 이미 존재하는 회원
+      return null;
+    }
   }
 
   async naverLogin(state: string, code: string) {
@@ -68,6 +81,36 @@ export class SignupService {
       user.user_id = user_id;
       user.user_nickname = '아무개';
       return await this.userRepository.save(user);
+    }
+  }
+
+  async kakaoLogin(code: string) {
+    const kakao_api_url = `https://kauth.kakao.com/oauth/token?grant_type=authorization_code&client_id=${this.config.get(
+      'KAKAO_CLIENT_ID',
+    )}&redirect_url=${this.config.get('KAKAO_REDIRECT_URL')}&code=${code}`;
+
+    try {
+      const token_res = await firstValueFrom(this.axios.post(kakao_api_url));
+      const access_token: string = token_res.data.access_token;
+
+      const user_ifo = await firstValueFrom(
+        this.axios.get('https://kapi.kakao.com/v2/user/me', {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        }),
+      );
+      const user_id: string = user_ifo.data.id;
+
+      // 회원가입 진행
+      const new_user = await this.signupProcess(user_id);
+      if (new_user) return new_user;
+      else {
+        // pass
+        return 'pass';
+      }
+    } catch (e) {
+      console.log(e);
     }
   }
 }
