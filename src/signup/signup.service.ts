@@ -71,16 +71,11 @@ export class SignupService {
     );
     const user_id = user_info.data.response.id;
 
-    const user = await this.findUserById(user_id);
-    if (user) {
+    const new_user = await this.signupProcess(user_id);
+    if (new_user) return new_user;
+    else {
       // pass
       return 'pass';
-    } else {
-      // 회원가입 진행
-      const user = new UserEntity();
-      user.user_id = user_id;
-      user.user_nickname = '아무개';
-      return await this.userRepository.save(user);
     }
   }
 
