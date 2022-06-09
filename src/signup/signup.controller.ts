@@ -14,4 +14,9 @@ export class SignupController {
   kakaoLogin(@Query('code') code: string) {
     return this.signupService.kakaoLogin(code);
   }
+
+  @Get('/google/callback')
+  googleLogin(@Query('code') code: string) {
+    return this.signupService.googleLogin(code);
+  }
 }

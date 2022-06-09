@@ -108,4 +108,42 @@ export class SignupService {
       console.log(e);
     }
   }
+
+  async googleLogin(code: string) {
+    const google_api_url = `https://oauth2.googleapis.com/token?client_id=${this.config.get(
+      'GOOGLE_CLIENT_ID',
+    )}&client_secret=${this.config.get(
+      'GOOGLE_CLIENT_SECRET',
+    )}&code=${code}&grant_type=authorization_code&redirect_uri=${this.config.get(
+      'GOOGLE_REDIRECT_URL',
+    )}`;
+
+    try {
+      const token_res = await firstValueFrom(this.axios.post(google_api_url));
+      const access_token: string = token_res.data.access_token;
+
+      const user_info = await firstValueFrom(
+        this.axios.get(
+          'https://www.googleapis.com/oauth2/v2/userinfo?access_token=' +
+            access_token,
+          {
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+            },
+          },
+        ),
+      );
+      const user_id = user_info.data.id;
+
+      // 회원가입 진행
+      const new_user = await this.signupProcess(user_id);
+      if (new_user) return new_user;
+      else {
+        // pass
+        return 'pass';
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  }
 }
